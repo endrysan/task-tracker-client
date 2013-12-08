@@ -7,10 +7,11 @@ import ru.endrysan.java.task_tracker_client.Client;
 import ru.endrysan.java.task_tracker_client.model.User;
 import ru.endrysan.java.task_tracker_client.services.SocketService;
 import ru.endrysan.java.task_tracker_client.view.MainView;
+import ru.endrysan.java.task_tracker_client.view.WorkplaceView;
 
 public class MainController implements ActionListener {
     
-    private SocketService service;
+    private Client client;
     public MainView parentMainView;
     
     public MainController(MainView parentMainView) {
@@ -39,9 +40,12 @@ public class MainController implements ActionListener {
         newUser.setLogin(displayFieldTextLogin);
         newUser.setPassword(new String(displayFieldTextPassword));
         
-        service = new SocketService(newUser);
+        client = new Client(newUser);
         
-        parentMainView.setVisible(false);
+        if(client.isUser) {
+            parentMainView.setVisible(false);
+            new WorkplaceView();
+        }
     }
 
     private void onAddUser(ActionEvent e) {
@@ -53,7 +57,7 @@ public class MainController implements ActionListener {
         newUser.setLogin(displayFieldTextLogin);
         newUser.setPassword(new String(displayFieldTextPassword));
         
-        service = new SocketService(newUser);
+        client = new Client(newUser);
         
         parentMainView.setVisible(false);
     }
