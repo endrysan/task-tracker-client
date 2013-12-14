@@ -4,14 +4,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import ru.endrysan.java.task_tracker_client.Client;
+import ru.endrysan.java.task_tracker_client.ServerAnswer;
+import ru.endrysan.java.task_tracker_client.ServerAnswer.Type;
 import ru.endrysan.java.task_tracker_client.model.User;
-import ru.endrysan.java.task_tracker_client.services.SocketService;
 import ru.endrysan.java.task_tracker_client.view.MainView;
 import ru.endrysan.java.task_tracker_client.view.WorkplaceView;
 
 public class MainController implements ActionListener {
     
-    private Client client;
+    private Client client = new Client();
     public MainView parentMainView;
     
     public MainController(MainView parentMainView) {
@@ -40,11 +41,13 @@ public class MainController implements ActionListener {
         newUser.setLogin(displayFieldTextLogin);
         newUser.setPassword(new String(displayFieldTextPassword));
         
-        client = new Client(newUser);
-        
-        if(client.isUser) {
+        ServerAnswer serverAnswer = client.login(newUser);
+        if (Type.SUCCESS.equals(serverAnswer.getType())) {
+            parentMainView.labelNotification.setText("");
             parentMainView.setVisible(false);
-            new WorkplaceView();
+            new WorkplaceView(client);
+        } else {
+            parentMainView.labelNotification.setText(serverAnswer.getMessage()); 
         }
     }
 
@@ -57,9 +60,14 @@ public class MainController implements ActionListener {
         newUser.setLogin(displayFieldTextLogin);
         newUser.setPassword(new String(displayFieldTextPassword));
         
-        client = new Client(newUser);
-        
-        parentMainView.setVisible(false);
+        ServerAnswer serverAnswer = client.register(newUser);
+        if (Type.SUCCESS.equals(serverAnswer.getType())) {
+            parentMainView.labelNotification.setText("");
+            parentMainView.setVisible(false);
+            new WorkplaceView(client);
+        } else {
+            parentMainView.labelNotification.setText(serverAnswer.getMessage()); 
+        }
     }
     
 }

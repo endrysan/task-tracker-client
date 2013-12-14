@@ -2,56 +2,67 @@ package ru.endrysan.java.task_tracker_client;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
 
+import ru.endrysan.java.task_tracker_client.ServerCommand.Action;
 import ru.endrysan.java.task_tracker_client.model.User;
 
 public class Client {
     
-    private final static int PORT = 3078;
-    private static Socket socket;
-    public boolean isUser = false;
+    private static final int PORT = 3078;
+    private static final Logger LOG = Logger.getLogger(Client.class);
+
+    private Socket socket;
+    private BufferedOutputStream out;
+    private ObjectOutputStream oot;
     
-    public Client() {
+    private BufferedInputStream bis;
+    private ObjectInputStream ois;
+
+    private ServerAnswer sendCommand(ServerCommand command) {
         try {
-            socket = new Socket("127.0.0.1", PORT);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    public Client(User newUser) {
-        BufferedOutputStream out = null;
-        ObjectOutputStream oot = null;
-        
-        BufferedInputStream bis = null;
-        ObjectInputStream ois = null;
-        try{
-            if (socket == null) {
+            if (socket == null && !Action.SIGNOUT.equals(command.getAction())) {
                 socket = new Socket("127.0.0.1", PORT);
+                out = new BufferedOutputStream(socket.getOutputStream());
+                oot = new ObjectOutputStream(out);
             }
-            out = new BufferedOutputStream(socket.getOutputStream());
-            oot = new ObjectOutputStream(out);
-            oot.writeObject(newUser);
-            
-            bis = new BufferedInputStream(socket.getInputStream());
-            ois = new ObjectInputStream(bis);
-            isUser = (Boolean)ois.readObject();
-            
+            oot.writeObject(command);
+            oot.flush();
+
+            if (bis == null && ois == null) {
+                bis = new BufferedInputStream(socket.getInputStream());
+                ois = new ObjectInputStream(bis);
+            }
+            return (ServerAnswer) ois.readObject();
         } catch (Exception e){
-            e.printStackTrace();
-        } finally {
-            IOUtils.closeQuietly(out);
-            IOUtils.closeQuietly(oot);
+            LOG.error("", e);
         }
+        return null;
     }
-    
+
+    public ServerAnswer login(User user) {
+        return sendCommand(new ServerCommand(Action.SIGNIN, user));
+    }
+
+    public ServerAnswer register(User user) {
+        return sendCommand(new ServerCommand(Action.SIGNUP, user));
+    }
+
+    public ServerAnswer logout(User user) {
+        ServerAnswer result = sendCommand(new ServerCommand(Action.SIGNOUT, user));
+        IOUtils.closeQuietly(oot);
+        IOUtils.closeQuietly(ois);
+        IOUtils.closeQuietly(socket);
+        oot = null;
+        out = null;
+        socket = null;
+        bis = null;
+        ois = null;
+        return result;
+    }
 }
